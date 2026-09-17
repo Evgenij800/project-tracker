@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t.projects_title }} — {{ t.app_title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1"><i class="fa-solid fa-folder-open text-success me-2"></i>{{ t.projects_title }}</h2>
+        <p class="text-muted small mb-0">{{ t.projects_subtitle }}</p>
+    </div>
+    {% if session.get('role') in ['admin', 'manager'] %}
+    <button class="btn btn-success fw-semibold" data-bs-toggle="modal" data-bs-target="#addProjectModal">
+        <i class="fa-solid fa-plus me-1"></i>{{ t.add_project }}
+    </button>
+    {% endif %}
+</div>
+
+<div class="card shadow-sm rounded-4 overflow-hidden">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">#ID</th>
+                        <th>{{ t.project_name }}</th>
+                        <th>{{ t.description }}</th>
+                        <th>{{ t.manager }}</th>
+                        <th>{{ t.status }}</th>
+                        <th class="text-end pe-4">{{ t.actions }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in projects %}
+                    <tr>
+                        <td class="ps-4 fw-bold">#{{ p.id }}</td>
+                        <td class="fw-semibold text-dark">{{ p.name }}</td>
+                        <td class="text-muted small">{{ p.description }}</td>
+                        <td><span class="badge bg-light text-dark border"><i class="fa-solid fa-user-tie me-1 text-primary"></i>{{ p.manager_name or t.not_assigned }}</span></td>
+                        <td>
+                            {% if p.status == 'active' %}
+                            <span class="badge bg-success">{{ t.active }}</span>
+                            {% elif p.status == 'completed' %}
+                            <span class="badge bg-secondary">{{ t.completed }}</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">{{ p.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="{{ url_for('project_detail', project_id=p.id) }}" class="btn btn-outline-primary btn-sm fw-semibold">
+                                <i class="fa-solid fa-columns me-1"></i>{{ t.open_kanban }}
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">{{ t.no_projects_found }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if session.get('role') in ['admin', 'manager'] %}
+<!-- Add Project Modal -->
+<div class="modal fade" id="addProjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-4">
+            <form method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-folder-plus text-success me-2"></i>{{ t.add_project }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label fw-semibold">{{ t.project_name }}</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label fw-semibold">{{ t.description }}</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ t.cancel }}</button>
+                    <button type="submit" class="btn btn-success px-4">{{ t.create }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

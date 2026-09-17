@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}{{ employee.full_name }} — {{ t.staff_details }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{{ url_for('staff') }}" class="text-decoration-none"><i class="fa-solid fa-arrow-left me-1"></i>{{ t.back_to_staff }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">#{{ employee.id }}</li>
+        </ol>
+    </nav>
+    <h2 class="fw-bold text-dark mb-1"><i class="fa-solid fa-id-card text-info me-2"></i>{{ employee.full_name }}</h2>
+    <p class="text-muted small mb-0">
+        <code>{{ employee.username }}</code> | 
+        <span class="badge bg-secondary ms-1">
+            {% if employee.role == 'admin' %}{{ t.role_admin }}
+            {% elif employee.role == 'manager' %}{{ t.role_manager }}
+            {% else %}{{ t.role_employee }}
+            {% endif %}
+        </span> | 
+        <span class="text-secondary fw-semibold">{{ translate_cat(employee.category) }}</span>
+    </p>
+</div>
+
+<!-- Assigned Projects (if manager) -->
+{% if projects_managed %}
+<div class="card shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-transparent pt-3 pb-2 border-0">
+        <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-folder-open text-success me-2"></i>{{ t.assigned_projects }}</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">#ID</th>
+                        <th>{{ t.project_name }}</th>
+                        <th>{{ t.description }}</th>
+                        <th>{{ t.status }}</th>
+                        <th class="text-end pe-4">{{ t.actions }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in projects_managed %}
+                    <tr>
+                        <td class="ps-4 fw-bold">#{{ p.id }}</td>
+                        <td class="fw-semibold text-dark">{{ p.name }}</td>
+                        <td class="text-muted small">{{ p.description }}</td>
+                        <td><span class="badge bg-success">{{ t.active }}</span></td>
+                        <td class="text-end pe-4">
+                            <a href="{{ url_for('project_detail', project_id=p.id) }}" class="btn btn-outline-primary btn-sm fw-semibold">
+                                <i class="fa-solid fa-columns me-1"></i>{{ t.open_kanban }}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Assigned Tasks -->
+<div class="card shadow-sm rounded-4 overflow-hidden">
+    <div class="card-header bg-transparent pt-3 pb-2 border-0">
+        <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-tasks text-primary me-2"></i>{{ t.assigned_tasks }}</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">#ID</th>
+                        <th>{{ t.task_title }}</th>
+                        <th>{{ t.project_name }}</th>
+                        <th>{{ t.priority }}</th>
+                        <th>{{ t.status }}</th>
+                        <th>{{ t.due_date }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks_assigned %}
+                    <tr>
+                        <td class="ps-4 fw-bold">#{{ task.id }}</td>
+                        <td class="fw-semibold text-dark">{{ task.title }}</td>
+                        <td>{{ task.project_name }}</td>
+                        <td>
+                            {% if task.priority == 'high' %}
+                            <span class="badge bg-danger">{{ t.priority_high }}</span>
+                            {% elif task.priority == 'medium' %}
+                            <span class="badge bg-info text-dark">{{ t.priority_medium }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ t.priority_low }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if task.status == 'new' %}<span class="badge bg-secondary">{{ t.status_new }}</span>
+                            {% elif task.status == 'in_progress' %}<span class="badge bg-primary">{{ t.status_in_progress }}</span>
+                            {% elif task.status == 'review' %}<span class="badge bg-warning text-dark">{{ t.status_review }}</span>
+                            {% elif task.status == 'completed' %}<span class="badge bg-success">{{ t.status_completed }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ task.due_date or '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">{{ t.no_tasks_found }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

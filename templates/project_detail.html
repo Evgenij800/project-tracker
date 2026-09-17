@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} — {{ t.kanban_board }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('projects') }}" class="text-decoration-none"><i class="fa-solid fa-arrow-left me-1"></i>{{ t.back_to_projects }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">#{{ project.id }}</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold text-dark mb-1"><i class="fa-solid fa-columns text-primary me-2"></i>{{ project.name }}</h2>
+        <p class="text-muted small mb-0">{{ project.description }} | <i class="fa-solid fa-user-tie me-1 text-secondary"></i>{{ t.manager }}: <strong>{{ project.manager_name or t.not_assigned }}</strong></p>
+    </div>
+    
+    {% if session.get('role') in ['admin', 'manager'] %}
+    <button class="btn btn-primary fw-semibold" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+        <i class="fa-solid fa-plus me-1"></i>{{ t.create_task }}
+    </button>
+    {% endif %}
+</div>
+
+<!-- Kanban Board Grid (4 columns) -->
+<div class="row g-3">
+    {% set columns = [
+        ('new', t.status_new, 'bg-secondary', 'border-secondary'),
+        ('in_progress', t.status_in_progress, 'bg-primary', 'border-primary'),
+        ('review', t.status_review, 'bg-warning text-dark', 'border-warning'),
+        ('completed', t.status_completed, 'bg-success', 'border-success')
+    ] %}
+
+    {% for status_key, status_title, badge_class, border_class in columns %}
+    <div class="col-md-3">
+        <div class="card shadow-sm rounded-4 h-100 border-top {{ border_class }} border-4 bg-white">
+            <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold text-dark mb-0">
+                    <span class="badge {{ badge_class }} me-1">&bull;</span> {{ status_title }}
+                </h6>
+                <span class="badge bg-light text-secondary border">
+                    {{ tasks | selectattr('status', 'equalto', status_key) | list | length }}
+                </span>
+            </div>
+            <div class="card-body p-2 d-flex flex-column gap-2" style="min-height: 400px; max-height: 70vh; overflow-y: auto;">
+                {% for task in tasks if task.status == status_key %}
+                <div class="card border shadow-sm rounded-3 p-3 bg-light task-card position-relative" style="cursor: pointer;" onclick="openTaskModal({{ task.id }})">
+                    <div class="d-flex align-items-center justify-content-between mb-2 gap-2">
+                        <h6 class="fw-bold text-dark mb-0 fs-6 text-truncate" title="{{ task.title }}">{{ task.title }}</h6>
+                        {% if task.priority == 'high' %}
+                        <span class="badge bg-danger flex-shrink-0" style="font-size: 0.65rem; padding: 0.35em 0.65em;">{{ t.priority_high }}</span>
+                        {% elif task.priority == 'medium' %}
+                        <span class="badge bg-info text-dark flex-shrink-0" style="font-size: 0.65rem; padding: 0.35em 0.65em;">{{ t.priority_medium }}</span>
+                        {% else %}
+                        <span class="badge bg-secondary flex-shrink-0" style="font-size: 0.65rem; padding: 0.35em 0.65em;">{{ t.priority_low }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <p class="text-muted small mb-2" style="font-size: 0.8rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        {{ task.description or '' }}
+                    </p>
+
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top small text-muted" style="font-size: 0.75rem;">
+                        <span><i class="fa-solid fa-user me-1"></i>{{ task.assignee_name or t.not_assigned }}</span>
+                        {% if task.due_date %}
+                        <span><i class="fa-regular fa-calendar me-1"></i>{{ task.due_date }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Quick Status Move Buttons -->
+                    <div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center" onclick="event.stopPropagation();">
+                        <form action="{{ url_for('update_task_status', task_id=task.id) }}" method="POST" class="d-inline">
+                            <input type="hidden" name="status" value="{% if status_key == 'in_progress' %}new{% elif status_key == 'review' %}in_progress{% elif status_key == 'completed' %}review{% endif %}">
+                            {% if status_key != 'new' %}
+                            <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-1" title="Назад"><i class="fa-solid fa-chevron-left"></i></button>
+                            {% endif %}
+                        </form>
+                        <span class="text-muted" style="font-size: 0.7rem;">#{{ task.id }}</span>
+                        <form action="{{ url_for('update_task_status', task_id=task.id) }}" method="POST" class="d-inline">
+                            <input type="hidden" name="status" value="{% if status_key == 'new' %}in_progress{% elif status_key == 'in_progress' %}review{% elif status_key == 'review' %}completed{% endif %}">
+                            {% if status_key != 'completed' %}
+                            <button type="submit" class="btn btn-outline-primary btn-sm py-0 px-1" title="Вперед"><i class="fa-solid fa-chevron-right"></i></button>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center text-muted small my-auto py-4 text-opacity-50">
+                    {{ t.no_tasks }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if session.get('role') in ['admin', 'manager'] %}
+<!-- Create Task Modal -->
+<div class="modal fade" id="createTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-4">
+            <form action="{{ url_for('create_task', project_id=project.id) }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-square-plus text-primary me-2"></i>{{ t.create_task }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="title" class="form-label fw-semibold">{{ t.task_title }}</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label fw-semibold">{{ t.task_description }}</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="priority" class="form-label fw-semibold">{{ t.priority }}</label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="low">{{ t.priority_low }}</option>
+                                <option value="medium" selected>{{ t.priority_medium }}</option>
+                                <option value="high">{{ t.priority_high }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="due_date" class="form-label fw-semibold">{{ t.due_date }}</label>
+                            <input type="date" class="form-control" id="due_date" name="due_date">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="assignee_id" class="form-label fw-semibold">{{ t.assignee }}</label>
+                        <select class="form-select" id="assignee_id" name="assignee_id">
+                            <option value="">{{ t.not_assigned }}</option>
+                            {% for staff in staff_list %}
+                            <option value="{{ staff.id }}">{{ staff.full_name }} ({{ translate_cat(staff.category) }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ t.cancel }}</button>
+                    <button type="submit" class="btn btn-primary px-4">{{ t.create }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Task Details Modal (Comments & Files) -->
+<div class="modal fade" id="taskDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-4">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalTaskTitle">Task Title</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <p class="text-muted small mb-1"><strong>{{ t.description }}:</strong></p>
+                        <p id="modalTaskDesc" class="bg-light p-3 rounded-3 small mb-0"></p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded-3 small">
+                            <p class="mb-1"><strong>{{ t.assignee }}:</strong> <span id="modalTaskAssignee"></span></p>
+                            <p class="mb-1"><strong>{{ t.priority }}:</strong> <span id="modalTaskPriority"></span></p>
+                            <p class="mb-0"><strong>{{ t.due_date }}:</strong> <span id="modalTaskDueDate"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Files Section -->
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-2"><i class="fa-solid fa-paperclip me-1"></i>{{ t.attachments }}</h6>
+                    <ul id="modalTaskListFiles" class="list-group list-group-flush mb-3 small">
+                        <!-- Loaded via JS -->
+                    </ul>
+                    <form id="uploadFileForm" method="POST" enctype="multipart/form-data" class="input-group input-group-sm">
+                        <input type="file" class="form-control" name="file" required>
+                        <button class="btn btn-outline-primary" type="submit"><i class="fa-solid fa-upload me-1"></i>{{ t.upload_file }}</button>
+                    </form>
+                </div>
+
+                <hr>
+
+                <!-- Comments Section -->
+                <div>
+                    <h6 class="fw-bold mb-3"><i class="fa-solid fa-comments me-1"></i>{{ t.comments }}</h6>
+                    <div id="modalTaskListComments" class="d-flex flex-column gap-2 mb-3" style="max-height: 200px; overflow-y: auto;">
+                        <!-- Loaded via JS -->
+                    </div>
+                    <form id="addCommentForm" method="POST" class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm" name="comment" placeholder="{{ t.add_comment }}..." required>
+                        <button type="submit" class="btn btn-primary btn-sm px-3"><i class="fa-solid fa-paper-plane me-1"></i>{{ t.send }}</button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openTaskModal(taskId) {
+    fetch('/task/' + taskId + '/data')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('modalTaskTitle').innerText = '#' + data.id + ': ' + data.title;
+            document.getElementById('modalTaskDesc').innerText = data.description || '—';
+            document.getElementById('modalTaskAssignee').innerText = data.assignee;
+            
+            const priorityMap = {
+                'low': '{{ t.priority_low }}',
+                'medium': '{{ t.priority_medium }}',
+                'high': '{{ t.priority_high }}'
+            };
+            document.getElementById('modalTaskPriority').innerText = priorityMap[data.priority] || data.priority;
+            document.getElementById('modalTaskDueDate').innerText = data.due_date || '—';
+
+            // Forms actions
+            document.getElementById('uploadFileForm').action = '/task/' + taskId + '/upload';
+            document.getElementById('addCommentForm').action = '/task/' + taskId + '/comment';
+
+            // Comments
+            const commentsContainer = document.getElementById('modalTaskListComments');
+            commentsContainer.innerHTML = '';
+            if (data.comments.length === 0) {
+                commentsContainer.innerHTML = '<span class="text-muted small">{{ t.no_comments }}</span>';
+            } else {
+                data.comments.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-light p-2 rounded-3 small';
+                    div.innerHTML = '<strong>' + c.author + '</strong> <span class="text-muted" style="font-size:0.7rem;">(' + c.date + ')</span><br>' + c.text;
+                    commentsContainer.appendChild(div);
+                });
+            }
+
+            // Files
+            const filesContainer = document.getElementById('modalTaskListFiles');
+            filesContainer.innerHTML = '';
+            if (data.files.length === 0) {
+                filesContainer.innerHTML = '<li class="list-group-item bg-transparent text-muted">{{ t.no_files }}</li>';
+            } else {
+                data.files.forEach(f => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item bg-transparent d-flex justify-content-between align-items-center px-0';
+                    li.innerHTML = '<a href="/uploads/' + f.url + '" target="_blank" class="text-decoration-none"><i class="fa-solid fa-file me-1"></i>' + f.name + '</a> <span class="text-muted" style="font-size:0.7rem;">' + f.date + '</span>';
+                    filesContainer.appendChild(li);
+                });
+            }
+
+            var taskModal = new bootstrap.Modal(document.getElementById('taskDetailsModal'));
+            taskModal.show();
+        });
+}
+</script>
+{% endblock %}
