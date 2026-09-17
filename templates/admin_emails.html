@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t.nav_admin_emails }} — {{ t.app_title }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="fw-bold text-dark mb-1"><i class="fa-solid fa-envelope text-primary me-2"></i>{{ t.nav_admin_emails }}</h2>
+    <p class="text-muted small mb-0">{{ t.smtp_settings }} & {{ t.email_log }}</p>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- SMTP Settings Form -->
+    <div class="col-md-6">
+        <div class="card shadow-sm rounded-4 p-4 h-100">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-server text-secondary me-2"></i>{{ t.smtp_settings }}</h5>
+            <form method="POST">
+                <input type="hidden" name="action" value="save_settings">
+                <div class="mb-3">
+                    <label for="smtp_server" class="form-label fw-semibold small">{{ t.smtp_server }}</label>
+                    <input type="text" class="form-control" id="smtp_server" name="smtp_server" value="{{ settings.smtp_server or '' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="smtp_port" class="form-label fw-semibold small">{{ t.smtp_port }}</label>
+                    <input type="text" class="form-control" id="smtp_port" name="smtp_port" value="{{ settings.smtp_port or '' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="smtp_user" class="form-label fw-semibold small">{{ t.smtp_user }}</label>
+                    <input type="text" class="form-control" id="smtp_user" name="smtp_user" value="{{ settings.smtp_user or '' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="smtp_password" class="form-label fw-semibold small">{{ t.smtp_pass }}</label>
+                    <input type="password" class="form-control" id="smtp_password" name="smtp_password" value="{{ settings.smtp_password or '' }}" required>
+                </div>
+                <button type="submit" class="btn btn-outline-primary fw-semibold w-100">
+                    <i class="fa-solid fa-floppy-disk me-1"></i>{{ t.save_settings }}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mass Mailing Form -->
+    <div class="col-md-6">
+        <div class="card shadow-sm rounded-4 p-4 h-100">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-bullhorn text-success me-2"></i>{{ t.mass_mailing }}</h5>
+            <form method="POST">
+                <input type="hidden" name="action" value="send_mailing">
+                <div class="mb-3">
+                    <label for="subject" class="form-label fw-semibold small">{{ t.subject }}</label>
+                    <input type="text" class="form-control" id="subject" name="subject" required>
+                </div>
+                <div class="mb-3">
+                    <label for="body" class="form-label fw-semibold small">{{ t.body }}</label>
+                    <textarea class="form-control" id="body" name="body" rows="6" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-success fw-semibold w-100 text-white">
+                    <i class="fa-solid fa-paper-plane me-1"></i>{{ t.send_mailing }}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Email Log Table -->
+<div class="card shadow-sm rounded-4 overflow-hidden">
+    <div class="card-header bg-transparent pt-3 pb-2 border-0">
+        <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-clock-rotate-left text-info me-2"></i>{{ t.email_log }}</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">#ID</th>
+                        <th>{{ t.recipient }}</th>
+                        <th>{{ t.subject }}</th>
+                        <th>{{ t.body }}</th>
+                        <th>{{ t.sent_date }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in email_logs %}
+                    <tr>
+                        <td class="ps-4 fw-bold">#{{ log.id }}</td>
+                        <td><code>{{ log.recipient }}</code></td>
+                        <td class="fw-semibold text-dark">{{ log.subject }}</td>
+                        <td class="text-muted small">{{ log.body }}</td>
+                        <td><span class="badge bg-light text-secondary border">{{ log.sent_at }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">Журнал писем пуст / Email log is empty.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -47,6 +47,23 @@
         .nav-link:hover, .nav-link.active {
             color: #ffffff !important;
         }
+        .nav-tabs .nav-link {
+            color: #475569 !important;
+            background-color: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            margin-right: 4px;
+            font-weight: 600;
+        }
+        .nav-tabs .nav-link:hover {
+            color: #0284c7 !important;
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+        }
+        .nav-tabs .nav-link.active {
+            color: #ffffff !important;
+            background-color: #0284c7 !important;
+            border-color: #0284c7 !important;
+        }
         .card {
             border: 1px solid #e2e8f0;
             box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
@@ -122,6 +139,18 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'staff' %}active{% endif %}" href="{{ url_for('staff') }}">
                             <i class="fa-solid fa-users me-1"></i>{{ t.nav_staff }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if session.get('role') == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin_emails' %}active{% endif %}" href="{{ url_for('admin_emails') }}">
+                            <i class="fa-solid fa-envelope me-1"></i>{{ t.nav_admin_emails }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin_backups' %}active{% endif %}" href="{{ url_for('admin_backups') }}">
+                            <i class="fa-solid fa-database me-1"></i>{{ t.nav_backups }}
                         </a>
                     </li>
                     {% endif %}
