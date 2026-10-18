@@ -2,7 +2,7 @@
 
 SaaS-система управления проектами: пул проектов и работ с канбан-доской, мониторинг оплат с подсветкой ближайших 7 дней, база кадров с ролями, автобэкапы БД, генерация договоров и актов, RU/EN.
 
-**🌐 Живое демо:** https://project-tracker-production-0a3a.up.railway.app
+**🌐 Живое демо:** https://tracker.neofreelance.ru
 **🔑 Тестовые входы:** admin / admin123 · manager / manager123 · employee / employee123
 
 ## Скриншоты
